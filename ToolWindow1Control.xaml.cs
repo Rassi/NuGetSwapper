@@ -119,5 +119,10 @@ namespace NuGetSwapper
             }
 
         }
+
+        private void Refresh_Click(object sender, RoutedEventArgs e)
+        {
+            LoadPackages();
+        }
     }
 }

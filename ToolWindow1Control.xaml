@@ -11,12 +11,13 @@
              Name="NugetSwapperWindow">
     <Grid>
         <StackPanel Orientation="Vertical">
-            <TextBlock Margin="10" HorizontalAlignment="Center">NuGetSwapper</TextBlock>
+            <TextBlock Margin="10" HorizontalAlignment="Center"><Run Text="NuGetSwapper"/></TextBlock>
             <ListBox x:Name="SwappedPackagesList" d:ItemsSource="{d:SampleData ItemCount=5}" SelectionChanged="PackagesList_SelectionChanged" Height="113" />
             <Button Content="Swap to package" Click="ButtonSwapToPackage_OnClick" Width="120" Height="23" x:Name="buttonSwapToPackage" RenderTransformOrigin="0.543,-5.618" />
             <ListBox x:Name="PackagesList" d:ItemsSource="{d:SampleData ItemCount=5}" SelectionChanged="PackagesList_SelectionChanged" 
                      VerticalContentAlignment="Bottom" />
-            <Button Content="Swap to project" Click="ButtonSwapToProject_Click" Width="120" Height="23" Name="buttonSwapToProject" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+            <Button Content="Swap to project" Click="ButtonSwapToProject_Click" Width="120" Height="23" x:Name="buttonSwapToProject" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
         </StackPanel>
+        <Button x:Name="Refresh" Content="Q" VerticalAlignment="Top" HorizontalAlignment="Right" FontFamily="Wingdings 3" FontSize="12" Width="30" Height="30" Click="Refresh_Click"/>
     </Grid>
 </UserControl>
