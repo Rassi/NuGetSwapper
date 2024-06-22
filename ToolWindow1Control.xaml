@@ -9,15 +9,40 @@
              mc:Ignorable="d"
              d:DesignHeight="300" d:DesignWidth="300"
              Name="NugetSwapperWindow">
-    <Grid>
-        <StackPanel Orientation="Vertical">
-            <TextBlock Margin="10" HorizontalAlignment="Center"><Run Text="NuGetSwapper"/></TextBlock>
-            <ListBox x:Name="SwappedPackagesList" d:ItemsSource="{d:SampleData ItemCount=5}" SelectionChanged="PackagesList_SelectionChanged" Height="113" />
-            <Button Content="Swap to package" Click="ButtonSwapToPackage_OnClick" Width="120" Height="23" x:Name="buttonSwapToPackage" RenderTransformOrigin="0.543,-5.618" />
-            <ListBox x:Name="PackagesList" d:ItemsSource="{d:SampleData ItemCount=5}" SelectionChanged="PackagesList_SelectionChanged" 
-                     VerticalContentAlignment="Bottom" />
-            <Button Content="Swap to project" Click="ButtonSwapToProject_Click" Width="120" Height="23" x:Name="buttonSwapToProject" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
-        </StackPanel>
+    <Grid Margin="0,0,2,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- For the title TextBlock -->
+            <RowDefinition Height="*"/>
+            <!-- For the TabControl to fill the rest of the space -->
+        </Grid.RowDefinitions>
+        <TextBlock Margin="10" HorizontalAlignment="Center" Grid.Row="0"><Run Text="NuGetSwapper"/></TextBlock>
+        <TabControl Grid.Row="1">
+            <TabItem Header="Packages">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <!-- This row will contain the ListBox and take up the remaining space -->
+                        <RowDefinition Height="Auto" />
+                        <!-- This row will contain the Button and size to its content -->
+                    </Grid.RowDefinitions>
+                    <ListBox x:Name="PackagesList" d:ItemsSource="{d:SampleData ItemCount=5}" SelectionChanged="PackagesList_SelectionChanged" Grid.Row="0" />
+                    <Button Content="Swap to project" Click="ButtonSwapToProject_Click" Width="120" Height="23" x:Name="ButtonSwapToProject" HorizontalAlignment="Center" Grid.Row="1" />
+                </Grid>
+            </TabItem>
+            <TabItem Header="Swapped Projects">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <!-- This row will contain the ListBox and take up the remaining space -->
+                        <RowDefinition Height="Auto" />
+                        <!-- This row will contain the Button and size to its content -->
+                    </Grid.RowDefinitions>
+                    <ListBox x:Name="SwappedPackagesList" d:ItemsSource="{d:SampleData ItemCount=5}" SelectionChanged="PackagesList_SelectionChanged" Grid.Row="0"  />
+                    <Button Content="Swap to package" Click="ButtonSwapToPackage_OnClick" Width="120" Height="23" x:Name="ButtonSwapToPackage" HorizontalAlignment="Center" Grid.Row="1" />
+                </Grid>
+            </TabItem>
+        </TabControl>
         <Button x:Name="Refresh" Content="Q" VerticalAlignment="Top" HorizontalAlignment="Right" FontFamily="Wingdings 3" FontSize="12" Width="30" Height="30" Click="Refresh_Click"/>
     </Grid>
 </UserControl>
