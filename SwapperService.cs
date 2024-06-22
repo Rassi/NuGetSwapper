@@ -244,7 +244,7 @@ namespace NuGetSwapper
                 {
                     var projectFile = GetProjectFile(project);
                     var packageReferences = projectFile.GetItems("PackageReference");
-                    var packageInfos = packageReferences.Select(item => new PackageInfo { Name = item.EvaluatedInclude, Version = item.GetMetadataValue("Version") });
+                    var packageInfos = packageReferences.Select(item => new PackageInfo { Name = item.EvaluatedInclude, Version = item.GetMetadataValue("Version") }).OrderBy(info => info.Name);
                     var projectInfo = new ProjectInfo { Name = Path.GetFileNameWithoutExtension(projectFile.FullPath), Filename = projectFile.FullPath };
                     packageReferencesByProject.Add(projectInfo, packageInfos);
                 }
@@ -296,7 +296,7 @@ namespace NuGetSwapper
                     Name = item.EvaluatedInclude,
                     Version = item.GetMetadataValue("Version"),
                     PackageName = item.GetMetadataValue("NuGetSwapperPackageName")
-                });
+                }).OrderBy(item => item.Name); // Order the project references alphabetically;
 
                 var projectInfo = new ProjectInfo { Name = Path.GetFileNameWithoutExtension(projectFile.FullPath), Filename = projectFile.FullPath };
                 projectReferencesByProject.Add(projectInfo, projectReferenceInfos);
