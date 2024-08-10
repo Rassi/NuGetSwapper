@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -23,17 +24,24 @@ namespace NuGetSwapper
     {
         private const string SwapperSolutionFolderName = "NuGetSwapperProjects";
         private readonly DTE2 _dte;
+        private readonly NuGetSwapperPackage _package;
 
         public SwapperService(DTE2 dte)
         {
             _dte = dte;
+            var vsShell = (IVsShell)ServiceProvider.GlobalProvider.GetService(typeof(IVsShell));
+            if (vsShell.IsPackageLoaded(Guid.Parse(NuGetSwapperPackage.PackageGuidString), out var myPackage)
+                == Microsoft.VisualStudio.VSConstants.S_OK)
+            {
+                _package = (NuGetSwapperPackage)myPackage;
+            }
         }
 
         public async Task<bool> SwapPackage(string solutionProjectName, string packageName, string packageVersion, string packageProjectFilename = null)
         {
             if (packageProjectFilename == null)
             {
-                packageProjectFilename = FindPackageProjectFilename(@"c:\dev\", packageName);
+                packageProjectFilename = FindPackageProjectFilename(_package.OptionProjectSearchRootPath, packageName);
                 if (packageProjectFilename == null)
                 {
                     return false;

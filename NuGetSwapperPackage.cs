@@ -3,6 +3,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Task = System.Threading.Tasks.Task;
+using System.ComponentModel;
 
 namespace NuGetSwapper
 {
@@ -27,6 +28,7 @@ namespace NuGetSwapper
     [Guid(NuGetSwapperPackage.PackageGuidString)]
     [ProvideMenuResource("Menus.ctmenu", 1)]
     [ProvideToolWindow(typeof(ToolWindow1))]
+    [ProvideOptionPage(typeof(OptionPageGrid), "NuGetSwapper", "Options", 0, 0, true)]
     public sealed class NuGetSwapperPackage : AsyncPackage
     {
         /// <summary>
@@ -51,6 +53,22 @@ namespace NuGetSwapper
             await ToolWindow1Command.InitializeAsync(this);
         }
 
+        public string OptionProjectSearchRootPath
+        {
+            get
+            {
+                var page = (OptionPageGrid)GetDialogPage(typeof(OptionPageGrid));
+                return page.OptionProjectSearchRootPath;
+            }
+        }
         #endregion
+    }
+
+    public class OptionPageGrid : DialogPage
+    {
+        [Category("NuGetSwapper")]
+        [DisplayName("Project search path")]
+        [Description("Path to search for project directories matching NuGet package names")]
+        public string OptionProjectSearchRootPath { get; set; } = @"c:\dev\";
     }
 }
