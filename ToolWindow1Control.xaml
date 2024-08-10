@@ -22,11 +22,17 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*" />
-                        <!-- This row will contain the ListBox and take up the remaining space -->
+                        <!-- This row will contain the TreeView and take up the remaining space -->
                         <RowDefinition Height="Auto" />
                         <!-- This row will contain the Button and size to its content -->
                     </Grid.RowDefinitions>
-                    <ListBox x:Name="PackagesList" d:ItemsSource="{d:SampleData ItemCount=5}" SelectionChanged="PackagesList_SelectionChanged" Grid.Row="0" />
+                    <TreeView x:Name="PackagesList" Grid.Row="0">
+                        <TreeView.ItemContainerStyle>
+                            <Style TargetType="{x:Type TreeViewItem}">
+                                <Setter Property="IsExpanded" Value="True" />
+                            </Style>
+                        </TreeView.ItemContainerStyle>
+                    </TreeView>
                     <Button Content="Swap to project" Click="ButtonSwapToProject_Click" Width="120" Height="23" x:Name="ButtonSwapToProject" HorizontalAlignment="Center" Grid.Row="1" />
                 </Grid>
             </TabItem>
@@ -38,7 +44,13 @@
                         <RowDefinition Height="Auto" />
                         <!-- This row will contain the Button and size to its content -->
                     </Grid.RowDefinitions>
-                    <ListBox x:Name="SwappedPackagesList" d:ItemsSource="{d:SampleData ItemCount=5}" SelectionChanged="PackagesList_SelectionChanged" Grid.Row="0"  />
+                    <TreeView x:Name="SwappedPackagesList" Grid.Row="0">
+                        <TreeView.ItemContainerStyle>
+                            <Style TargetType="{x:Type TreeViewItem}">
+                                <Setter Property="IsExpanded" Value="True" />
+                            </Style>
+                        </TreeView.ItemContainerStyle>
+                    </TreeView>
                     <Button Content="Swap to package" Click="ButtonSwapToPackage_OnClick" Width="120" Height="23" x:Name="ButtonSwapToPackage" HorizontalAlignment="Center" Grid.Row="1" />
                 </Grid>
             </TabItem>

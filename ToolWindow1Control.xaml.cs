@@ -58,13 +58,14 @@ namespace NuGetSwapper
         private void ButtonSwapToProject_Click(object sender, RoutedEventArgs e)
         {
             //MessageBox.Show(string.Format(System.Globalization.CultureInfo.CurrentUICulture, "Invoked '{0}'", this.ToString()), "ToolWindow1");
-            if (PackagesList.SelectedItems.Count >= 0)
+            if (PackagesList.SelectedItem != null && !((TreeViewItem) PackagesList.SelectedItem).HasItems)
             {
-                var selectedPackage = PackagesList.SelectedItems[0];
+                var selectedPackage = PackagesList.SelectedItem;
                 var packageReferencesByProject = _swapperService.GetPackageReferencesByProject().Result;
-                var packagesByProjects = packageReferencesByProject.FirstOrDefault(p => p.Value.Any(pr => $"{pr.Name} - {pr.Version}" == selectedPackage.ToString()));
+                var selectedPackageName = ((TreeViewItem) selectedPackage).Header.ToString();
+                var packagesByProjects = packageReferencesByProject.FirstOrDefault(p => p.Value.Any(pr => $"{pr.Name} - {pr.Version}" == selectedPackageName));
                 var project = packagesByProjects.Key;
-                var package = packagesByProjects.Value.First(pr => $"{pr.Name} - {pr.Version}" == selectedPackage.ToString());
+                var package = packagesByProjects.Value.First(pr => $"{pr.Name} - {pr.Version}" == selectedPackageName);
                 //ThreadHelper.JoinableTaskFactory.Run(() => _swapperService.SwapPackage(project.Name, package.Name, package.Version));
 
                 _ = _swapperService.SwapPackage(project.Name, package.Name, package.Version).Result;
@@ -74,13 +75,14 @@ namespace NuGetSwapper
 
         private void ButtonSwapToPackage_OnClick(object sender, RoutedEventArgs e)
         {
-            if (SwappedPackagesList.SelectedItems.Count >= 0)
+            if (SwappedPackagesList.SelectedItem != null && !((TreeViewItem)SwappedPackagesList.SelectedItem).HasItems)
             {
-                var selectedProject = SwappedPackagesList.SelectedItems[0];
+                var selectedProject = SwappedPackagesList.SelectedItem;
                 var projectReferencesByProject = _swapperService.GetProjectReferencesByProject().Result;
-                var projectsByProjects = projectReferencesByProject.FirstOrDefault(p => p.Value.Any(pr => $"{pr.PackageName} - {pr.Version}" == selectedProject.ToString()));
+                var selectedProjectName = ((TreeViewItem)selectedProject).Header.ToString();
+                var projectsByProjects = projectReferencesByProject.FirstOrDefault(p => p.Value.Any(pr => $"{pr.PackageName} - {pr.Version}" == selectedProjectName));
                 var project = projectsByProjects.Key;
-                var package = projectsByProjects.Value.First(pr => $"{pr.PackageName} - {pr.Version}" == selectedProject.ToString());
+                var package = projectsByProjects.Value.First(pr => $"{pr.PackageName} - {pr.Version}" == selectedProjectName);
                 //ThreadHelper.JoinableTaskFactory.RunAsync(() => _swapperService.SwapPackage(project.Name, package.Name, package.Version));
 
                 _ = _swapperService.SwapProject(project.Name, package.PackageName).Result;
@@ -88,12 +90,6 @@ namespace NuGetSwapper
                 LoadPackages();
             }
         }
-
-        private void PackagesList_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-
-        }
-
 
         private async void LoadPackages()
         {
@@ -103,24 +99,36 @@ namespace NuGetSwapper
             var packageReferencesByProject = await _swapperService.GetPackageReferencesByProject();
             foreach (var project in packageReferencesByProject)
             {
+                var projectNode = new TreeViewItem { Header = project.Key.Name };
+
                 foreach (var package in project.Value)
                 {
-                    PackagesList.Items.Add($"{package.Name} - {package.Version}");
+                    var packageNode = new TreeViewItem { Header = $"{package.Name} - {package.Version}" };
+
+                    projectNode.Items.Add(packageNode);
                 }
+
+                PackagesList.Items.Add(projectNode);
             }
 
             var projectReferencesByProject = await _swapperService.GetProjectReferencesByProject();
             foreach (var project in projectReferencesByProject)
             {
+                var projectNode = new TreeViewItem { Header = project.Key.Name };
+
                 foreach (var projectReference in project.Value)
                 {
-                    SwappedPackagesList.Items.Add($"{projectReference.PackageName} - {projectReference.Version}");
+                    var projectReferenceNode = new TreeViewItem { Header = $"{projectReference.PackageName} - {projectReference.Version}" };
+
+                    projectNode.Items.Add(projectReferenceNode);
                 }
+
+                SwappedPackagesList.Items.Add(projectNode);
             }
 
         }
 
-        private void Refresh_Click(object sender, RoutedEventArgs e)
+            private void Refresh_Click(object sender, RoutedEventArgs e)
         {
             LoadPackages();
         }
