@@ -1,18 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using EnvDTE;
+using System.Windows;
 using EnvDTE100;
 using EnvDTE80;
-using EnvDTE90;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
-using Microsoft.Internal.VisualStudio.Shell.ProjectSystem;
-using Microsoft.VisualStudio.ComponentModelHost;
-using Microsoft.VisualStudio.Extensibility.VSSdkCompatibility;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Constants = EnvDTE.Constants;
@@ -29,11 +24,12 @@ namespace NuGetSwapper
         public SwapperService(DTE2 dte)
         {
             _dte = dte;
+            
+            ThreadHelper.ThrowIfNotOnUIThread();
             var vsShell = (IVsShell)ServiceProvider.GlobalProvider.GetService(typeof(IVsShell));
-            if (vsShell.IsPackageLoaded(Guid.Parse(NuGetSwapperPackage.PackageGuidString), out var myPackage)
-                == Microsoft.VisualStudio.VSConstants.S_OK)
+            if (vsShell.IsPackageLoaded(Guid.Parse(NuGetSwapperPackage.PackageGuidString), out var package) == Microsoft.VisualStudio.VSConstants.S_OK)
             {
-                _package = (NuGetSwapperPackage)myPackage;
+                _package = (NuGetSwapperPackage)package;
             }
         }
 
@@ -226,10 +222,34 @@ namespace NuGetSwapper
 
         private string FindPackageProjectFilename(string searchPath, string packageName)
         {
-            var packageProjectFilename = $"{packageName}.csproj";
-            var files = Directory.GetFiles(searchPath, packageProjectFilename, SearchOption.AllDirectories);
+            if (!Directory.Exists(searchPath))
+            {
+                MessageBox.Show($"Couldn't find {searchPath} specified in options", "Directory file not found", MessageBoxButton.OK, MessageBoxImage.Error);
+                return null;
+            }
 
-            return files.FirstOrDefault();
+            var packageProjectFilename = $"{packageName}.csproj";
+
+            // Look up in directory matching perfectly
+            var packageProjectDirectory = Path.Combine(searchPath, packageName);
+
+            var files = Directory.GetFiles(packageProjectDirectory, packageProjectFilename, SearchOption.AllDirectories);
+
+            var findPackageProjectFilename = files.FirstOrDefault();
+            if (findPackageProjectFilename == null)
+            {
+                // Search all directories in searchPath
+                files = Directory.GetFiles(searchPath, packageProjectFilename, SearchOption.AllDirectories);
+                findPackageProjectFilename = files.FirstOrDefault();
+            }
+
+            if (findPackageProjectFilename == null)
+            {
+                MessageBox.Show($"Couldn't find {packageProjectFilename}", "Project file not found", MessageBoxButton.OK, MessageBoxImage.Error);
+                return null;
+            }
+
+            return findPackageProjectFilename;
         }
 
         public async Task<Dictionary<ProjectInfo, IEnumerable<PackageInfo>>> GetPackageReferencesByProject()
