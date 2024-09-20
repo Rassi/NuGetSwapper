@@ -1,14 +1,10 @@
 using System.Collections.ObjectModel;
 using EnvDTE;
 using EnvDTE80;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.VisualStudio.Shell;
-using System.Reflection.Metadata;
-using NuGetSwapper;
 
 namespace NuGetSwapper
 {
@@ -108,7 +104,23 @@ namespace NuGetSwapper
 
                 foreach (var package in project.Value)
                 {
-                    var packageNode = new TreeViewItem { Header = $"{package.Name} - {package.Version}" };
+                    var packageProjectFilename = _swapperService.FindPackageProjectFilename(package.Name);
+                    var hasProjectFile = !string.IsNullOrEmpty(packageProjectFilename);
+
+                    var stackPanel = new StackPanel { Orientation = Orientation.Horizontal };
+                    
+                    var icon = hasProjectFile ? Microsoft.VisualStudio.Imaging.KnownMonikers.StatusOK : Microsoft.VisualStudio.Imaging.KnownMonikers.StatusError;
+                    var checkmark = new Microsoft.VisualStudio.Imaging.CrispImage
+                    {
+                        Moniker = icon,
+                        Width = 16,
+                        Height = 16,
+                        Margin = new Thickness(5, 0, 0, 0)
+                    };
+                    stackPanel.Children.Add(checkmark);
+                    stackPanel.Children.Add(new TextBlock { Text = $"{package.Name} - {package.Version}" });
+
+                    var packageNode = new TreeViewItem { Header = stackPanel };
                     projectNode.Items.Add(packageNode);
                 }
 

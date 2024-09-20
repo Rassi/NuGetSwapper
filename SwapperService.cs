@@ -37,9 +37,10 @@ namespace NuGetSwapper
         {
             if (packageProjectFilename == null)
             {
-                packageProjectFilename = FindPackageProjectFilename(_package.OptionProjectSearchRootPath, packageName);
+                packageProjectFilename = FindPackageProjectFilename(packageName);
                 if (packageProjectFilename == null)
                 {
+                    MessageBox.Show($"Couldn't find {packageProjectFilename}", "Project file not found", MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
             }
@@ -220,11 +221,13 @@ namespace NuGetSwapper
             return solutionProject;
         }
 
-        public static string FindPackageProjectFilename(string searchPath, string packageName)
+        public string FindPackageProjectFilename(string packageName)
         {
+            var searchPath = _package.OptionProjectSearchRootPath;
+
             if (!Directory.Exists(searchPath))
             {
-                MessageBox.Show($"Couldn't find {searchPath} specified in options", "Directory file not found", MessageBoxButton.OK, MessageBoxImage.Error);
+                //MessageBox.Show($"Couldn't find {searchPath} specified in options", "Directory file not found", MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;
             }
 
@@ -250,7 +253,7 @@ namespace NuGetSwapper
 
             if (findPackageProjectFilename == null)
             {
-                MessageBox.Show($"Couldn't find {packageProjectFilename}", "Project file not found", MessageBoxButton.OK, MessageBoxImage.Error);
+                //MessageBox.Show($"Couldn't find {packageProjectFilename}", "Project file not found", MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;
             }
 

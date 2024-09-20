@@ -9,5 +9,6 @@ namespace NuGetSwapper
         Task<bool> SwapProject(string solutionProjectName, string packageName);
         Task<Dictionary<ProjectInfo, IEnumerable<PackageInfo>>> GetPackageReferencesByProject();
         Task<Dictionary<ProjectInfo, IEnumerable<ProjectReferenceInfo>>> GetProjectReferencesByProject();
+        string FindPackageProjectFilename(string packageName);
     }
 }
