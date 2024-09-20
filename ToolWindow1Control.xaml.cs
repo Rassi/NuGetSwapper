@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using EnvDTE;
 using EnvDTE80;
 using System.Diagnostics.CodeAnalysis;
@@ -17,6 +18,8 @@ namespace NuGetSwapper
     public partial class ToolWindow1Control : UserControl
     {
         private readonly ISwapperService _swapperService;
+        public ObservableCollection<TreeViewItem> PackagesList { get; set; }
+        public ObservableCollection<TreeViewItem> SwappedPackagesList { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ToolWindow1Control"/> class.
@@ -27,6 +30,9 @@ namespace NuGetSwapper
             _swapperService = new SwapperService(dte);
             this.InitializeComponent();
 
+            PackagesList = new ObservableCollection<TreeViewItem>();
+            SwappedPackagesList = new ObservableCollection<TreeViewItem>();
+
             // Subscribe to the SolutionEvents
             ThreadHelper.ThrowIfNotOnUIThread();
             dte.Events.SolutionEvents.Opened += SolutionEvents_Opened;
@@ -35,7 +41,6 @@ namespace NuGetSwapper
             // Call LoadPackages() initially
             LoadPackages();
         }
-
 
         private void SolutionEvents_Opened()
         {
@@ -46,8 +51,8 @@ namespace NuGetSwapper
         private void SolutionEvents_AfterClosing()
         {
             // Solution is closed, clear the PackagesList and SwappedPackagesList
-            PackagesList.Items.Clear();
-            SwappedPackagesList.Items.Clear();
+            PackagesList.Clear();
+            SwappedPackagesList.Clear();
         }
 
         /// <summary>
@@ -58,9 +63,9 @@ namespace NuGetSwapper
         private void ButtonSwapToProject_Click(object sender, RoutedEventArgs e)
         {
             //MessageBox.Show(string.Format(System.Globalization.CultureInfo.CurrentUICulture, "Invoked '{0}'", this.ToString()), "ToolWindow1");
-            if (PackagesList.SelectedItem != null && !((TreeViewItem) PackagesList.SelectedItem).HasItems)
+            if (PackagesListTreeView.SelectedItem != null && !((TreeViewItem) PackagesListTreeView.SelectedItem).HasItems)
             {
-                var selectedPackage = PackagesList.SelectedItem;
+                var selectedPackage = PackagesListTreeView.SelectedItem;
                 var packageReferencesByProject = _swapperService.GetPackageReferencesByProject().Result;
                 var selectedPackageName = ((TreeViewItem) selectedPackage).Header.ToString();
                 var packagesByProjects = packageReferencesByProject.FirstOrDefault(p => p.Value.Any(pr => $"{pr.Name} - {pr.Version}" == selectedPackageName));
@@ -75,9 +80,9 @@ namespace NuGetSwapper
 
         private void ButtonSwapToPackage_OnClick(object sender, RoutedEventArgs e)
         {
-            if (SwappedPackagesList.SelectedItem != null && !((TreeViewItem)SwappedPackagesList.SelectedItem).HasItems)
+            if (SwappedPackagesListTreeView.SelectedItem != null && !((TreeViewItem)SwappedPackagesListTreeView.SelectedItem).HasItems)
             {
-                var selectedProject = SwappedPackagesList.SelectedItem;
+                var selectedProject = SwappedPackagesListTreeView.SelectedItem;
                 var projectReferencesByProject = _swapperService.GetProjectReferencesByProject().Result;
                 var selectedProjectName = ((TreeViewItem)selectedProject).Header.ToString();
                 var projectsByProjects = projectReferencesByProject.FirstOrDefault(p => p.Value.Any(pr => $"{pr.PackageName} - {pr.Version}" == selectedProjectName));
@@ -93,8 +98,8 @@ namespace NuGetSwapper
 
         private async void LoadPackages()
         {
-            PackagesList.Items.Clear();
-            SwappedPackagesList.Items.Clear();
+            PackagesList.Clear();
+            SwappedPackagesList.Clear();
 
             var packageReferencesByProject = await _swapperService.GetPackageReferencesByProject();
             foreach (var project in packageReferencesByProject)
@@ -104,11 +109,10 @@ namespace NuGetSwapper
                 foreach (var package in project.Value)
                 {
                     var packageNode = new TreeViewItem { Header = $"{package.Name} - {package.Version}" };
-
                     projectNode.Items.Add(packageNode);
                 }
 
-                PackagesList.Items.Add(projectNode);
+                PackagesList.Add(projectNode);
             }
 
             var projectReferencesByProject = await _swapperService.GetProjectReferencesByProject();
@@ -119,16 +123,14 @@ namespace NuGetSwapper
                 foreach (var projectReference in project.Value)
                 {
                     var projectReferenceNode = new TreeViewItem { Header = $"{projectReference.PackageName} - {projectReference.Version}" };
-
                     projectNode.Items.Add(projectReferenceNode);
                 }
 
-                SwappedPackagesList.Items.Add(projectNode);
+                SwappedPackagesList.Add(projectNode);
             }
-
         }
 
-            private void Refresh_Click(object sender, RoutedEventArgs e)
+        private void Refresh_Click(object sender, RoutedEventArgs e)
         {
             LoadPackages();
         }

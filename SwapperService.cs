@@ -220,7 +220,7 @@ namespace NuGetSwapper
             return solutionProject;
         }
 
-        private string FindPackageProjectFilename(string searchPath, string packageName)
+        public static string FindPackageProjectFilename(string searchPath, string packageName)
         {
             if (!Directory.Exists(searchPath))
             {
@@ -233,13 +233,18 @@ namespace NuGetSwapper
             // Look up in directory matching perfectly
             var packageProjectDirectory = Path.Combine(searchPath, packageName);
 
-            var files = Directory.GetFiles(packageProjectDirectory, packageProjectFilename, SearchOption.AllDirectories);
+            string findPackageProjectFilename = null;
+            
+            if (Directory.Exists(packageProjectDirectory))
+            {
+                var files = Directory.GetFiles(packageProjectDirectory, packageProjectFilename, SearchOption.AllDirectories);
+                findPackageProjectFilename = files.FirstOrDefault();
+            }
 
-            var findPackageProjectFilename = files.FirstOrDefault();
             if (findPackageProjectFilename == null)
             {
                 // Search all directories in searchPath
-                files = Directory.GetFiles(searchPath, packageProjectFilename, SearchOption.AllDirectories);
+                var files = Directory.GetFiles(searchPath, packageProjectFilename, SearchOption.AllDirectories);
                 findPackageProjectFilename = files.FirstOrDefault();
             }
 
