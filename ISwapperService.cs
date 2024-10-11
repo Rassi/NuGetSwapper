@@ -10,5 +10,6 @@ namespace NuGetSwapper
         Task<Dictionary<ProjectInfo, IEnumerable<PackageInfo>>> GetPackageReferencesByProject();
         Task<Dictionary<ProjectInfo, IEnumerable<ProjectReferenceInfo>>> GetProjectReferencesByProject();
         string FindPackageProjectFilename(string packageName);
+        void SetManualProjectFilePath(string packageName, string projectFilePath);
     }
 }

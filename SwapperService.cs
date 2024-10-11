@@ -12,6 +12,7 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Constants = EnvDTE.Constants;
 using Project = Microsoft.Build.Evaluation.Project;
+using System.Collections.Concurrent;
 
 namespace NuGetSwapper
 {
@@ -20,6 +21,7 @@ namespace NuGetSwapper
         private const string SwapperSolutionFolderName = "NuGetSwapperProjects";
         private readonly DTE2 _dte;
         private readonly NuGetSwapperPackage _package;
+        private readonly ConcurrentDictionary<string, string> _manualProjectFilePaths = new ConcurrentDictionary<string, string>();
 
         public SwapperService(DTE2 dte)
         {
@@ -37,10 +39,20 @@ namespace NuGetSwapper
         {
             if (packageProjectFilename == null)
             {
-                packageProjectFilename = FindPackageProjectFilename(packageName);
+                // First, check if there's a manually specified project file path
+                if (_manualProjectFilePaths.TryGetValue(packageName, out var manualPath))
+                {
+                    packageProjectFilename = manualPath;
+                }
+                else
+                {
+                    // If not, use the automatic search
+                    packageProjectFilename = FindPackageProjectFilename(packageName);
+                }
+
                 if (packageProjectFilename == null)
                 {
-                    MessageBox.Show($"Couldn't find {packageProjectFilename}", "Project file not found", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Couldn't find project file for {packageName}", "Project file not found", MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
             }
@@ -61,21 +73,17 @@ namespace NuGetSwapper
             package.SetMetadataValue("NuGetSwapperPackageName", packageName);
             package.ItemType = "ProjectReference";
             package.UnevaluatedInclude = packageProjectFilename;
-            //projectFile.AddItem("ProjectReference", packageProjectFilename, metadata);
             projectFile.Save();
 
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-            //var dte = await _dte.GetServiceAsync();
             var solution = (Solution4)_dte.Solution;
 
-            //var nugetProjectsFolder = (SolutionFolder)solution.Projects.OfType<Project>().FirstOrDefault(p => ((EnvDTE.Project) p).Name == "NuGetSwapperProjects");
             var nugetProjectsFolder = GetSolutionFolder(SwapperSolutionFolderName);
             if (nugetProjectsFolder == null)
             {
                 // Add "NuGetSwapperProjects" solution folder if it doesn't exist
                 nugetProjectsFolder = (SolutionFolder)solution.AddSolutionFolder(SwapperSolutionFolderName).Object;
             }
-            //var nugetProjectsFolder = (SolutionFolder)solution.AddSolutionFolder("NuGetSwapperProjects").Object;
             nugetProjectsFolder.AddFromFile(packageProjectFilename);
             solution.SaveAs(solution.FullName);
 
@@ -223,6 +231,13 @@ namespace NuGetSwapper
 
         public string FindPackageProjectFilename(string packageName)
         {
+            // First, check if there's a manually specified project file path
+            if (_manualProjectFilePaths.TryGetValue(packageName, out var manualPath))
+            {
+                return manualPath;
+            }
+
+            // If not, proceed with the existing search logic
             var searchPath = _package.OptionProjectSearchRootPath;
 
             if (!Directory.Exists(searchPath))
@@ -269,9 +284,6 @@ namespace NuGetSwapper
                 return packageReferencesByProject;
             }
 
-            //var dte = await _dte.GetServiceAsync();
-
-
             var solutionFile = SolutionFile.Parse(_dte.Solution.FileName);
             foreach (var projectInSolution in solutionFile.ProjectsByGuid)
             {
@@ -280,7 +292,18 @@ namespace NuGetSwapper
                 {
                     var projectFile = GetProjectFile(project);
                     var packageReferences = projectFile.GetItems("PackageReference");
-                    var packageInfos = packageReferences.Select(item => new PackageInfo { Name = item.EvaluatedInclude, Version = item.GetMetadataValue("Version") }).OrderBy(info => info.Name);
+                    var packageInfos = packageReferences.Select(item => 
+                    {
+                        var packageName = item.EvaluatedInclude;
+                        var version = item.GetMetadataValue("Version");
+                        var hasProjectFile = _manualProjectFilePaths.ContainsKey(packageName);
+                        return new PackageInfo 
+                        { 
+                            Name = packageName, 
+                            Version = version,
+                            HasProjectFile = hasProjectFile
+                        };
+                    }).OrderBy(info => info.Name);
                     var projectInfo = new ProjectInfo { Name = Path.GetFileNameWithoutExtension(projectFile.FullPath), Filename = projectFile.FullPath };
                     packageReferencesByProject.Add(projectInfo, packageInfos);
                 }
@@ -352,6 +375,11 @@ namespace NuGetSwapper
             }
 
             return projectReferencesByProject;
+        }
+
+        public void SetManualProjectFilePath(string packageName, string projectFilePath)
+        {
+            _manualProjectFilePaths[packageName] = projectFilePath;
         }
     }
 }

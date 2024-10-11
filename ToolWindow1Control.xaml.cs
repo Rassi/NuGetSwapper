@@ -9,6 +9,10 @@ using Microsoft.VisualStudio.Shell;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Threading;
+using System.Windows.Input;
+using System.Windows.Media;
+using Microsoft.VisualStudio.Imaging.Interop;
+using Microsoft.Win32;
 
 namespace NuGetSwapper
 {
@@ -41,6 +45,9 @@ namespace NuGetSwapper
 
             // Call LoadPackages() initially
             LoadPackages();
+
+            // Add this line to set up the context menu
+            SetupContextMenu();
         }
 
         private void SolutionEvents_Opened()
@@ -200,6 +207,61 @@ namespace NuGetSwapper
         private void Refresh_Click(object sender, RoutedEventArgs e)
         {
             LoadPackages();
+        }
+
+        private void SetupContextMenu()
+        {
+            var contextMenu = new ContextMenu();
+            var menuItem = new MenuItem { Header = "Specify Project File" };
+            menuItem.Click += SpecifyProjectFile_Click;
+            contextMenu.Items.Add(menuItem);
+
+            PackagesListTreeView.MouseRightButtonDown += (sender, args) =>
+            {
+                var treeViewItem = VisualUpwardSearch<TreeViewItem>(args.OriginalSource as DependencyObject) as TreeViewItem;
+                if (treeViewItem != null && !treeViewItem.HasItems)
+                {
+                    treeViewItem.ContextMenu = contextMenu;
+                }
+            };
+        }
+
+        private void SpecifyProjectFile_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedItem = PackagesListTreeView.SelectedItem as TreeViewItem;
+            if (selectedItem != null && !selectedItem.HasItems)
+            {
+                var packageName = ((StackPanel)selectedItem.Header).Children.OfType<TextBlock>().First().Text.Split('-')[0].Trim();
+                var openFileDialog = new OpenFileDialog
+                {
+                    Filter = "C# Project Files (*.csproj)|*.csproj",
+                    Title = $"Select Project File for {packageName}"
+                };
+
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    var projectFilePath = openFileDialog.FileName;
+                    // Update the package icon to indicate a manually specified project file
+                    UpdatePackageIcon(selectedItem, Microsoft.VisualStudio.Imaging.KnownMonikers.DocumentSource);
+                    // Store the manually specified project file path
+                    _swapperService.SetManualProjectFilePath(packageName, projectFilePath);
+                }
+            }
+        }
+
+        private static DependencyObject VisualUpwardSearch<T>(DependencyObject source)
+        {
+            while (source != null && source.GetType() != typeof(T))
+                source = VisualTreeHelper.GetParent(source);
+
+            return source;
+        }
+
+        private void UpdatePackageIcon(TreeViewItem packageNode, ImageMoniker icon)
+        {
+            var stackPanel = (StackPanel)packageNode.Header;
+            var crispImage = (Microsoft.VisualStudio.Imaging.CrispImage)stackPanel.Children[0];
+            crispImage.Moniker = icon;
         }
     }
 }
