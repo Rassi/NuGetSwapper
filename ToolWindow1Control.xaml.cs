@@ -5,6 +5,8 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.VisualStudio.Shell;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace NuGetSwapper
 {
@@ -104,20 +106,17 @@ namespace NuGetSwapper
 
                 foreach (var package in project.Value)
                 {
-                    var packageProjectFilename = _swapperService.FindPackageProjectFilename(package.Name);
-                    var hasProjectFile = !string.IsNullOrEmpty(packageProjectFilename);
-
                     var stackPanel = new StackPanel { Orientation = Orientation.Horizontal };
                     
-                    var icon = hasProjectFile ? Microsoft.VisualStudio.Imaging.KnownMonikers.StatusOK : Microsoft.VisualStudio.Imaging.KnownMonikers.StatusError;
-                    var checkmark = new Microsoft.VisualStudio.Imaging.CrispImage
+                    // Add a placeholder icon
+                    var placeholderIcon = new Microsoft.VisualStudio.Imaging.CrispImage
                     {
-                        Moniker = icon,
+                        Moniker = Microsoft.VisualStudio.Imaging.KnownMonikers.Loading,
                         Width = 16,
                         Height = 16,
                         Margin = new Thickness(5, 0, 0, 0)
                     };
-                    stackPanel.Children.Add(checkmark);
+                    stackPanel.Children.Add(placeholderIcon);
                     stackPanel.Children.Add(new TextBlock { Text = $"{package.Name} - {package.Version}" });
 
                     var packageNode = new TreeViewItem { Header = stackPanel };
@@ -139,6 +138,36 @@ namespace NuGetSwapper
                 }
 
                 SwappedPackagesList.Add(projectNode);
+            }
+
+            // Asynchronously update icons for all packages
+            await UpdatePackageIcons(packageReferencesByProject);
+        }
+
+        private async Task UpdatePackageIcons(Dictionary<ProjectInfo, IEnumerable<PackageInfo>> packageReferencesByProject)
+        {
+            foreach (var project in packageReferencesByProject)
+            {
+                foreach (var package in project.Value)
+                {
+                    var packageProjectFilename = await Task.Run(() => _swapperService.FindPackageProjectFilename(package.Name));
+                    var hasProjectFile = !string.IsNullOrEmpty(packageProjectFilename);
+
+                    var icon = hasProjectFile ? Microsoft.VisualStudio.Imaging.KnownMonikers.StatusOK : Microsoft.VisualStudio.Imaging.KnownMonikers.StatusError;
+
+                    // Find the corresponding TreeViewItem and update its icon
+                    var projectNode = PackagesList.FirstOrDefault(p => p.Header.ToString() == project.Key.Name);
+                    if (projectNode != null)
+                    {
+                        var packageNode = projectNode.Items.Cast<TreeViewItem>().FirstOrDefault(i => ((StackPanel)i.Header).Children.OfType<TextBlock>().First().Text == $"{package.Name} - {package.Version}");
+                        if (packageNode != null)
+                        {
+                            var stackPanel = (StackPanel)packageNode.Header;
+                            var crispImage = (Microsoft.VisualStudio.Imaging.CrispImage)stackPanel.Children[0];
+                            crispImage.Moniker = icon;
+                        }
+                    }
+                }
             }
         }
 
