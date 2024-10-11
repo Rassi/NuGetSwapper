@@ -4,27 +4,59 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:vsshell="clr-namespace:Microsoft.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
+             xmlns:imaging="clr-namespace:Microsoft.VisualStudio.Imaging;assembly=Microsoft.VisualStudio.Imaging"
+             xmlns:catalog="clr-namespace:Microsoft.VisualStudio.Imaging;assembly=Microsoft.VisualStudio.ImageCatalog"
              Background="{DynamicResource {x:Static vsshell:VsBrushes.WindowKey}}"
              Foreground="{DynamicResource {x:Static vsshell:VsBrushes.WindowTextKey}}"
              mc:Ignorable="d"
              d:DesignHeight="300" d:DesignWidth="300"
              Name="NugetSwapperWindow">
+    <UserControl.Resources>
+        <Style x:Key="ToolBarStyle" TargetType="ToolBar">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarBorderKey}}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolBar">
+                        <Border BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Background="{TemplateBinding Background}">
+                            <ToolBarPanel IsItemsHost="True" Margin="0,0,2,2"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+    
     <Grid Margin="0,0,2,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <!-- For the title TextBlock -->
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <!-- For the TabControl to fill the rest of the space -->
         </Grid.RowDefinitions>
-        <TextBlock Margin="10" HorizontalAlignment="Center" Grid.Row="0"><Run Text="NuGetSwapper"/></TextBlock>
-        <TabControl Grid.Row="1">
+        
+        <ToolBar Grid.Row="0" Style="{StaticResource ToolBarStyle}"
+                 Background="{DynamicResource {x:Static vsshell:VsBrushes.CommandBarGradientBeginKey}}">
+            <Button x:Name="Refresh" Click="Refresh_Click" 
+                    Background="Transparent"
+                    BorderBrush="Transparent"
+                    Padding="5,2"
+                    ToolTip="Refresh">
+                <StackPanel Orientation="Horizontal">
+                    <imaging:CrispImage Moniker="{x:Static catalog:KnownMonikers.Refresh}" Height="16" Width="16" />
+                </StackPanel>
+            </Button>
+        </ToolBar>
+
+        <TabControl Grid.Row="2">
             <TabItem Header="Packages">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*" />
-                        <!-- This row will contain the TreeView and take up the remaining space -->
                         <RowDefinition Height="Auto" />
-                        <!-- This row will contain the Button and size to its content -->
                     </Grid.RowDefinitions>
                     <TreeView x:Name="PackagesListTreeView" ItemsSource="{Binding PackagesList, RelativeSource={RelativeSource AncestorType=UserControl}}">
                         <TreeView.ItemContainerStyle>
@@ -40,9 +72,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*" />
-                        <!-- This row will contain the ListBox and take up the remaining space -->
                         <RowDefinition Height="Auto" />
-                        <!-- This row will contain the Button and size to its content -->
                     </Grid.RowDefinitions>
                     <TreeView x:Name="SwappedPackagesListTreeView" ItemsSource="{Binding SwappedPackagesList, RelativeSource={RelativeSource AncestorType=UserControl}}">
                         <TreeView.ItemContainerStyle>
@@ -55,6 +85,5 @@
                 </Grid>
             </TabItem>
         </TabControl>
-        <Button x:Name="Refresh" Content="Q" VerticalAlignment="Top" HorizontalAlignment="Right" FontFamily="Wingdings 3" FontSize="12" Width="30" Height="30" Click="Refresh_Click"/>
     </Grid>
 </UserControl>
