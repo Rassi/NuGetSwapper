@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using EnvDTE;
 using EnvDTE80;
@@ -7,6 +8,7 @@ using System.Windows.Controls;
 using Microsoft.VisualStudio.Shell;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace NuGetSwapper
 {
@@ -18,6 +20,7 @@ namespace NuGetSwapper
         private readonly ISwapperService _swapperService;
         public ObservableCollection<TreeViewItem> PackagesList { get; set; }
         public ObservableCollection<TreeViewItem> SwappedPackagesList { get; set; }
+        private CancellationTokenSource _loadPackagesCts;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ToolWindow1Control"/> class.
@@ -96,61 +99,84 @@ namespace NuGetSwapper
 
         private async void LoadPackages()
         {
+            // Cancel any ongoing LoadPackages operation
+            _loadPackagesCts?.Cancel();
+            _loadPackagesCts = new CancellationTokenSource();
+            var ct = _loadPackagesCts.Token;
+
             PackagesList.Clear();
             SwappedPackagesList.Clear();
 
-            var packageReferencesByProject = await _swapperService.GetPackageReferencesByProject();
-            foreach (var project in packageReferencesByProject)
+            try
             {
-                var projectNode = new TreeViewItem { Header = project.Key.Name };
+                var packageReferencesByProject = await _swapperService.GetPackageReferencesByProject();
+                ct.ThrowIfCancellationRequested();
 
-                foreach (var package in project.Value)
+                foreach (var project in packageReferencesByProject)
                 {
-                    var stackPanel = new StackPanel { Orientation = Orientation.Horizontal };
-                    
-                    // Add a placeholder icon
-                    var placeholderIcon = new Microsoft.VisualStudio.Imaging.CrispImage
+                    var projectNode = new TreeViewItem { Header = project.Key.Name };
+
+                    foreach (var package in project.Value)
                     {
-                        Moniker = Microsoft.VisualStudio.Imaging.KnownMonikers.Loading,
-                        Width = 16,
-                        Height = 16,
-                        Margin = new Thickness(5, 0, 0, 0)
-                    };
-                    stackPanel.Children.Add(placeholderIcon);
-                    stackPanel.Children.Add(new TextBlock { Text = $"{package.Name} - {package.Version}" });
+                        var stackPanel = new StackPanel { Orientation = Orientation.Horizontal };
+                        
+                        // Add a placeholder icon
+                        var placeholderIcon = new Microsoft.VisualStudio.Imaging.CrispImage
+                        {
+                            Moniker = Microsoft.VisualStudio.Imaging.KnownMonikers.Loading,
+                            Width = 16,
+                            Height = 16,
+                            Margin = new Thickness(5, 0, 0, 0)
+                        };
+                        stackPanel.Children.Add(placeholderIcon);
+                        stackPanel.Children.Add(new TextBlock { Text = $"{package.Name} - {package.Version}" });
 
-                    var packageNode = new TreeViewItem { Header = stackPanel };
-                    projectNode.Items.Add(packageNode);
+                        var packageNode = new TreeViewItem { Header = stackPanel };
+                        projectNode.Items.Add(packageNode);
+                    }
+
+                    PackagesList.Add(projectNode);
                 }
 
-                PackagesList.Add(projectNode);
-            }
+                var projectReferencesByProject = await _swapperService.GetProjectReferencesByProject();
+                ct.ThrowIfCancellationRequested();
 
-            var projectReferencesByProject = await _swapperService.GetProjectReferencesByProject();
-            foreach (var project in projectReferencesByProject)
-            {
-                var projectNode = new TreeViewItem { Header = project.Key.Name };
-
-                foreach (var projectReference in project.Value)
+                foreach (var project in projectReferencesByProject)
                 {
-                    var projectReferenceNode = new TreeViewItem { Header = $"{projectReference.PackageName} - {projectReference.Version}" };
-                    projectNode.Items.Add(projectReferenceNode);
+                    var projectNode = new TreeViewItem { Header = project.Key.Name };
+
+                    foreach (var projectReference in project.Value)
+                    {
+                        var projectReferenceNode = new TreeViewItem { Header = $"{projectReference.PackageName} - {projectReference.Version}" };
+                        projectNode.Items.Add(projectReferenceNode);
+                    }
+
+                    SwappedPackagesList.Add(projectNode);
                 }
 
-                SwappedPackagesList.Add(projectNode);
+                // Asynchronously update icons for all packages
+                await UpdatePackageIcons(packageReferencesByProject, ct);
             }
-
-            // Asynchronously update icons for all packages
-            await UpdatePackageIcons(packageReferencesByProject);
+            catch (OperationCanceledException)
+            {
+                // Operation was cancelled, do nothing
+            }
+            catch (Exception ex)
+            {
+                // Handle any other exceptions that might occur during loading
+                MessageBox.Show($"An error occurred while loading packages: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        private async Task UpdatePackageIcons(Dictionary<ProjectInfo, IEnumerable<PackageInfo>> packageReferencesByProject)
+        private async Task UpdatePackageIcons(Dictionary<ProjectInfo, IEnumerable<PackageInfo>> packageReferencesByProject, CancellationToken ct)
         {
             foreach (var project in packageReferencesByProject)
             {
                 foreach (var package in project.Value)
                 {
-                    var packageProjectFilename = await Task.Run(() => _swapperService.FindPackageProjectFilename(package.Name));
+                    ct.ThrowIfCancellationRequested();
+
+                    var packageProjectFilename = await Task.Run(() => _swapperService.FindPackageProjectFilename(package.Name), ct);
                     var hasProjectFile = !string.IsNullOrEmpty(packageProjectFilename);
 
                     var icon = hasProjectFile ? Microsoft.VisualStudio.Imaging.KnownMonikers.StatusOK : Microsoft.VisualStudio.Imaging.KnownMonikers.StatusError;
