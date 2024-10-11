@@ -58,12 +58,26 @@
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <TreeView x:Name="PackagesListTreeView" ItemsSource="{Binding PackagesList, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                    <TreeView x:Name="PackagesListTreeView" ItemsSource="{Binding PackagesList}">
                         <TreeView.ItemContainerStyle>
                             <Style TargetType="{x:Type TreeViewItem}">
                                 <Setter Property="IsExpanded" Value="True" />
                             </Style>
                         </TreeView.ItemContainerStyle>
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate ItemsSource="{Binding Packages}">
+                                <TextBlock Text="{Binding Project.Name}"/>
+                                <HierarchicalDataTemplate.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <imaging:CrispImage Moniker="{Binding Icon}" Width="16" Height="16" Margin="5,0,0,0"/>
+                                            <TextBlock Text="{Binding Package.Name}" />
+                                            <TextBlock Text="{Binding Package.Version}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </HierarchicalDataTemplate.ItemTemplate>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
                     </TreeView>
                     <Button Content="Swap to project" Click="ButtonSwapToProject_Click" Width="120" Height="23" x:Name="ButtonSwapToProject" HorizontalAlignment="Center" Grid.Row="1" />
                 </Grid>

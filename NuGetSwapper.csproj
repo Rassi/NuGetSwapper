@@ -49,6 +49,7 @@
     <Compile Include="PackageInfo.cs" />
     <Compile Include="ProjectInfo.cs" />
     <Compile Include="ProjectReferenceInfo.cs" />
+    <Compile Include="ProjectViewModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="NuGetSwapperPackage.cs" />
     <Compile Include="SwapperService.cs" />
