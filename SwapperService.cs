@@ -23,7 +23,7 @@ namespace NuGetSwapper
         private readonly DTE2 _dte;
         private readonly NuGetSwapperPackage _package;
         private readonly ConcurrentDictionary<string, string> _manualProjectFilePaths = new ConcurrentDictionary<string, string>();
-        private Dictionary<string, string> _projectFileCache = new Dictionary<string, string>();
+        private readonly Dictionary<string, string> _projectFileCache = new Dictionary<string, string>();
         private DateTime _lastCacheUpdate = DateTime.MinValue;
         private readonly TimeSpan _cacheDuration = TimeSpan.FromMinutes(5);
 

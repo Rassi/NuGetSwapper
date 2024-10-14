@@ -69,23 +69,21 @@ namespace NuGetSwapper
         /// </summary>
         /// <param name="sender">The event sender.</param>
         /// <param name="e">The event args.</param>
-        private void ButtonSwapToProject_Click(object sender, RoutedEventArgs e)
+        private async void ButtonSwapToProject_Click(object sender, RoutedEventArgs e)
         {
-            if (PackagesListTreeView.SelectedItem != null) // TODO: is PackageViewModel selectedPackage
+            if (PackagesListTreeView.SelectedItem is PackageViewModel selectedPackage) // TODO: is PackageViewModel selectedPackage
             {
-                var selectedPackage = (PackageViewModel)PackagesListTreeView.SelectedItem;
-                _ = _swapperService.SwapPackage(selectedPackage.SolutionProjectName, selectedPackage.Package.Name, selectedPackage.Package.Version).Result;
+                await _swapperService.SwapPackage(selectedPackage.SolutionProjectName, selectedPackage.Package.Name, selectedPackage.Package.Version);
+                
                 LoadPackages();
             }
         }
 
-        private void ButtonSwapToPackage_OnClick(object sender, RoutedEventArgs e)
+        private async void ButtonSwapToPackage_OnClick(object sender, RoutedEventArgs e)
         {
             if (SwappedProjectsListTreeView.SelectedItem is SwappedProjectViewModel selectedProject)
             {
-                //var selectedProject = (SwappedProjectViewModel)SwappedProjectsListTreeView.SelectedItem;
-                var projectName = selectedProject.SolutionProjectName;
-                _ = _swapperService.SwapProject(projectName, selectedProject.SwappedProject.PackageName).Result;
+                await _swapperService.SwapProject(selectedProject.SolutionProjectName, selectedProject.SwappedProject.PackageName);
 
                 LoadPackages();
             }
