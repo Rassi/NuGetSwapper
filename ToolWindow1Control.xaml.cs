@@ -7,13 +7,11 @@ using System.Windows;
 using System.Windows.Controls;
 using Microsoft.VisualStudio.Shell;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.Threading;
-using System.Windows.Input;
 using System.Windows.Media;
 using Microsoft.VisualStudio.Imaging.Interop;
 using Microsoft.Win32;
-using Microsoft.Build.Evaluation;
+using NuGetSwapper.ViewModels;
 
 namespace NuGetSwapper
 {
@@ -23,8 +21,8 @@ namespace NuGetSwapper
     public partial class ToolWindow1Control : UserControl
     {
         private readonly ISwapperService _swapperService;
-        public ObservableCollection<ProjectViewModel> PackagesList { get; set; }
-        public ObservableCollection<TreeViewItem> SwappedPackagesList { get; set; }
+        public ObservableCollection<SolutionPackagesViewModel> PackagesList { get; set; }
+        public ObservableCollection<SolutionSwappedProjectViewModel> SwappedProjectsList { get; set; }
         private CancellationTokenSource _loadPackagesCts;
 
         /// <summary>
@@ -36,8 +34,8 @@ namespace NuGetSwapper
             _swapperService = new SwapperService(dte);
             this.InitializeComponent();
 
-            PackagesList = new ObservableCollection<ProjectViewModel>();
-            SwappedPackagesList = new ObservableCollection<TreeViewItem>();
+            PackagesList = new ObservableCollection<SolutionPackagesViewModel>();
+            SwappedProjectsList = new ObservableCollection<SolutionSwappedProjectViewModel>();
 
             this.DataContext = this;
 
@@ -63,7 +61,7 @@ namespace NuGetSwapper
         {
             // Solution is closed, clear the PackagesList and SwappedPackagesList
             PackagesList.Clear();
-            SwappedPackagesList.Clear();
+            SwappedProjectsList.Clear();
         }
 
         /// <summary>
@@ -73,36 +71,21 @@ namespace NuGetSwapper
         /// <param name="e">The event args.</param>
         private void ButtonSwapToProject_Click(object sender, RoutedEventArgs e)
         {
-            //MessageBox.Show(string.Format(System.Globalization.CultureInfo.CurrentUICulture, "Invoked '{0}'", this.ToString()), "ToolWindow1");
-            if (PackagesListTreeView.SelectedItem != null)
+            if (PackagesListTreeView.SelectedItem != null) // TODO: is PackageViewModel selectedPackage
             {
                 var selectedPackage = (PackageViewModel)PackagesListTreeView.SelectedItem;
-                //var packageReferencesByProject = _swapperService.GetPackageReferencesByProject().Result;
-                //var selectedPackageName = selectedPackage.Package.Name;
-                //var packagesByProjects = packageReferencesByProject.FirstOrDefault(p => p.Value.Any(pr => $"{pr.Name} - {pr.Version}" == selectedPackageName));
-                //var project = packagesByProjects.Key;
-                //var package = packagesByProjects.Value.First(pr => $"{pr.Name} - {pr.Version}" == selectedPackageName);
-                //ThreadHelper.JoinableTaskFactory.Run(() => _swapperService.SwapPackage(project.Name, package.Name, package.Version));
-
-                //_ = _swapperService.SwapPackage(project.Name, package.Name, package.Version).Result;
-                _ = _swapperService.SwapPackage(selectedPackage.ProjectName, selectedPackage.Package.Name, selectedPackage.Package.Version).Result;
+                _ = _swapperService.SwapPackage(selectedPackage.SolutionProjectName, selectedPackage.Package.Name, selectedPackage.Package.Version).Result;
                 LoadPackages();
             }
         }
 
         private void ButtonSwapToPackage_OnClick(object sender, RoutedEventArgs e)
         {
-            if (SwappedPackagesListTreeView.SelectedItem != null && !((TreeViewItem)SwappedPackagesListTreeView.SelectedItem).HasItems)
+            if (SwappedProjectsListTreeView.SelectedItem is SwappedProjectViewModel selectedProject)
             {
-                var selectedProject = SwappedPackagesListTreeView.SelectedItem;
-                var projectReferencesByProject = _swapperService.GetProjectReferencesByProject().Result;
-                var selectedProjectName = ((TreeViewItem)selectedProject).Header.ToString();
-                var projectsByProjects = projectReferencesByProject.FirstOrDefault(p => p.Value.Any(pr => $"{pr.PackageName} - {pr.Version}" == selectedProjectName));
-                var project = projectsByProjects.Key;
-                var package = projectsByProjects.Value.First(pr => $"{pr.PackageName} - {pr.Version}" == selectedProjectName);
-                //ThreadHelper.JoinableTaskFactory.RunAsync(() => _swapperService.SwapPackage(project.Name, package.Name, package.Version));
-
-                _ = _swapperService.SwapProject(project.Name, package.PackageName).Result;
+                //var selectedProject = (SwappedProjectViewModel)SwappedProjectsListTreeView.SelectedItem;
+                var projectName = selectedProject.SolutionProjectName;
+                _ = _swapperService.SwapProject(projectName, selectedProject.SwappedProject.PackageName).Result;
 
                 LoadPackages();
             }
@@ -116,44 +99,42 @@ namespace NuGetSwapper
             var ct = _loadPackagesCts.Token;
 
             PackagesList.Clear();
-            SwappedPackagesList.Clear();
+            SwappedProjectsList.Clear();
 
             try
             {
-                var packageReferencesByProject = await _swapperService.GetPackageReferencesByProject();
+                var packageReferencesBySolutionProject = await _swapperService.GetPackageReferencesBySolutionProject();
                 ct.ThrowIfCancellationRequested();
 
-                foreach (var projectEntry in packageReferencesByProject)
+                foreach (var projectEntry in packageReferencesBySolutionProject)
                 {
-                    var projectViewModel = new ProjectViewModel(projectEntry.Key);
-
+                    var solutionPackagesViewModel = new SolutionPackagesViewModel(projectEntry.Key);
                     foreach (var package in projectEntry.Value)
                     {
                         var packageViewModel = new PackageViewModel(package, projectEntry.Key.Name);
-                        projectViewModel.Packages.Add(packageViewModel);
+                        solutionPackagesViewModel.Packages.Add(packageViewModel);
                     }
 
-                    PackagesList.Add(projectViewModel);
+                    PackagesList.Add(solutionPackagesViewModel);
                 }
 
-                var projectReferencesByProject = await _swapperService.GetProjectReferencesByProject();
+                var projectReferencesBySolutionProject = await _swapperService.GetProjectReferencesBySolutionProject();
                 ct.ThrowIfCancellationRequested();
 
-                foreach (var project in projectReferencesByProject)
+                foreach (var projectEntry in projectReferencesBySolutionProject)
                 {
-                    var projectNode = new TreeViewItem { Header = project.Key.Name };
-
-                    foreach (var projectReference in project.Value)
+                    var solutionSwappedProjectViewModel = new SolutionSwappedProjectViewModel(projectEntry.Key);
+                    foreach (var projectReference in projectEntry.Value)
                     {
-                        var projectReferenceNode = new TreeViewItem { Header = $"{projectReference.PackageName} - {projectReference.Version}" };
-                        projectNode.Items.Add(projectReferenceNode);
+                        var swappedProjectViewModel = new SwappedProjectViewModel(projectReference, projectEntry.Key.Name);
+                        solutionSwappedProjectViewModel.SwappedProjects.Add(swappedProjectViewModel);
                     }
 
-                    SwappedPackagesList.Add(projectNode);
+                    SwappedProjectsList.Add(solutionSwappedProjectViewModel);
                 }
 
                 // Asynchronously update icons for all packages
-                await UpdatePackageIcons(packageReferencesByProject, ct);
+                await UpdatePackageIcons(ct);
             }
             catch (OperationCanceledException)
             {
@@ -166,7 +147,7 @@ namespace NuGetSwapper
             }
         }
 
-        private async Task UpdatePackageIcons(Dictionary<ProjectInfo, IEnumerable<PackageInfo>> packageReferencesByProject, CancellationToken ct)
+        private async Task UpdatePackageIcons(CancellationToken ct)
         {
             foreach (var projectViewModel in PackagesList)
             {
@@ -178,7 +159,6 @@ namespace NuGetSwapper
                     var hasProjectFile = !string.IsNullOrEmpty(packageProjectFilename);
 
                     packageViewModel.Icon = hasProjectFile ? Microsoft.VisualStudio.Imaging.KnownMonikers.StatusOK : Microsoft.VisualStudio.Imaging.KnownMonikers.StatusError;
-                    
                 }
             }
         }

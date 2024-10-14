@@ -13,6 +13,7 @@ using Microsoft.VisualStudio.Shell.Interop;
 using Constants = EnvDTE.Constants;
 using Project = Microsoft.Build.Evaluation.Project;
 using System.Collections.Concurrent;
+using NuGetSwapper.Models;
 
 namespace NuGetSwapper
 {
@@ -275,7 +276,7 @@ namespace NuGetSwapper
             return findPackageProjectFilename;
         }
 
-        public async Task<Dictionary<ProjectInfo, IEnumerable<PackageInfo>>> GetPackageReferencesByProject()
+        public async Task<Dictionary<ProjectInfo, IEnumerable<PackageInfo>>> GetPackageReferencesBySolutionProject()
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             var packageReferencesByProject = new Dictionary<ProjectInfo, IEnumerable<PackageInfo>>();
@@ -296,12 +297,10 @@ namespace NuGetSwapper
                     {
                         var packageName = item.EvaluatedInclude;
                         var version = item.GetMetadataValue("Version");
-                        var hasProjectFile = _manualProjectFilePaths.ContainsKey(packageName);
                         return new PackageInfo 
                         { 
                             Name = packageName, 
-                            Version = version,
-                            HasProjectFile = hasProjectFile
+                            Version = version
                         };
                     }).OrderBy(info => info.Name);
                     var projectInfo = new ProjectInfo { Name = Path.GetFileNameWithoutExtension(projectFile.FullPath), Filename = projectFile.FullPath };
@@ -323,7 +322,7 @@ namespace NuGetSwapper
             return projectFile;
         }
 
-        public async Task<Dictionary<ProjectInfo, IEnumerable<ProjectReferenceInfo>>> GetProjectReferencesByProject()
+        public async Task<Dictionary<ProjectInfo, IEnumerable<ProjectReferenceInfo>>> GetProjectReferencesBySolutionProject()
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             

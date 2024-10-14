@@ -1,31 +1,19 @@
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Microsoft.VisualStudio.Imaging.Interop;
+using NuGetSwapper.Models;
 
-namespace NuGetSwapper
+namespace NuGetSwapper.ViewModels
 {
-    public class ProjectViewModel
-    {
-        public ProjectInfo Project { get; set; }
-        public ObservableCollection<PackageViewModel> Packages { get; set; }
-
-        public ProjectViewModel(ProjectInfo project)
-        {
-            Project = project;
-            Packages = new ObservableCollection<PackageViewModel>();
-        }
-    }
-
     public class PackageViewModel: INotifyPropertyChanged
     {
-        public string ProjectName
+        public string SolutionProjectName
         {
-            get => _projectName;
-            set => SetField(ref _projectName, value);
+            get => _solutionProjectName;
+            set => SetField(ref _solutionProjectName, value);
         }
-        private string _projectName;
+        private string _solutionProjectName;
 
         public PackageInfo Package
         {
@@ -41,9 +29,9 @@ namespace NuGetSwapper
         }
         private ImageMoniker _icon;
 
-        public PackageViewModel(PackageInfo package, string projectName)
+        public PackageViewModel(PackageInfo package, string solutionProjectName)
         {
-            ProjectName = projectName;
+            SolutionProjectName = solutionProjectName;
             Package = package;
             Icon = Microsoft.VisualStudio.Imaging.KnownMonikers.Loading;
         }

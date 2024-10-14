@@ -1,4 +1,4 @@
-namespace NuGetSwapper
+namespace NuGetSwapper.Models
 {
     public class ProjectInfo
     {

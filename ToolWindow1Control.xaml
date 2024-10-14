@@ -88,12 +88,24 @@
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <TreeView x:Name="SwappedPackagesListTreeView" ItemsSource="{Binding SwappedPackagesList, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                        <TreeView.ItemContainerStyle>
-                            <Style TargetType="{x:Type TreeViewItem}">
-                                <Setter Property="IsExpanded" Value="True" />
-                            </Style>
-                        </TreeView.ItemContainerStyle>
+                    <TreeView x:Name="SwappedProjectsListTreeView" ItemsSource="{Binding SwappedProjectsList}">
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate ItemsSource="{Binding SwappedProjects}">
+                                <TextBlock Text="{Binding Project.Name}" />
+                                <HierarchicalDataTemplate.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock>
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0} - {1}">
+                                                    <Binding Path="PackageName" />
+                                                    <Binding Path="Version" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </HierarchicalDataTemplate.ItemTemplate>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
                     </TreeView>
                     <Button Content="Swap to package" Click="ButtonSwapToPackage_OnClick" Width="120" Height="23" x:Name="ButtonSwapToPackage" HorizontalAlignment="Center" Grid.Row="1" />
                 </Grid>
