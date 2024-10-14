@@ -23,6 +23,9 @@ namespace NuGetSwapper
         private readonly DTE2 _dte;
         private readonly NuGetSwapperPackage _package;
         private readonly ConcurrentDictionary<string, string> _manualProjectFilePaths = new ConcurrentDictionary<string, string>();
+        private Dictionary<string, string> _projectFileCache = new Dictionary<string, string>();
+        private DateTime _lastCacheUpdate = DateTime.MinValue;
+        private readonly TimeSpan _cacheDuration = TimeSpan.FromMinutes(5);
 
         public SwapperService(DTE2 dte)
         {
@@ -238,42 +241,45 @@ namespace NuGetSwapper
                 return manualPath;
             }
 
-            // If not, proceed with the existing search logic
             var searchPath = _package.OptionProjectSearchRootPath;
 
             if (!Directory.Exists(searchPath))
             {
-                //MessageBox.Show($"Couldn't find {searchPath} specified in options", "Directory file not found", MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;
+            }
+
+            // Update cache if it's expired
+            if (DateTime.Now - _lastCacheUpdate > _cacheDuration)
+            {
+                UpdateProjectFileCache(searchPath);
             }
 
             var packageProjectFilename = $"{packageName}.csproj";
 
-            // Look up in directory matching perfectly
-            var packageProjectDirectory = Path.Combine(searchPath, packageName);
+            // Look for the project file in the cache
+            if (_projectFileCache.TryGetValue(packageProjectFilename, out var cachedPath))
+            {
+                return cachedPath;
+            }
 
-            string findPackageProjectFilename = null;
+            return null;
+        }
+
+        private void UpdateProjectFileCache(string searchPath)
+        {
+            _projectFileCache.Clear();
+            var allProjectFiles = Directory.GetFiles(searchPath, "*.csproj", SearchOption.AllDirectories);
             
-            if (Directory.Exists(packageProjectDirectory))
+            foreach (var file in allProjectFiles)
             {
-                var files = Directory.GetFiles(packageProjectDirectory, packageProjectFilename, SearchOption.AllDirectories);
-                findPackageProjectFilename = files.FirstOrDefault();
+                var fileName = Path.GetFileName(file);
+                if (!_projectFileCache.ContainsKey(fileName))
+                {
+                    _projectFileCache[fileName] = file;
+                }
             }
 
-            if (findPackageProjectFilename == null)
-            {
-                // Search all directories in searchPath
-                var files = Directory.GetFiles(searchPath, packageProjectFilename, SearchOption.AllDirectories);
-                findPackageProjectFilename = files.FirstOrDefault();
-            }
-
-            if (findPackageProjectFilename == null)
-            {
-                //MessageBox.Show($"Couldn't find {packageProjectFilename}", "Project file not found", MessageBoxButton.OK, MessageBoxImage.Error);
-                return null;
-            }
-
-            return findPackageProjectFilename;
+            _lastCacheUpdate = DateTime.Now;
         }
 
         public async Task<Dictionary<ProjectInfo, IEnumerable<PackageInfo>>> GetPackageReferencesBySolutionProject()
@@ -351,10 +357,10 @@ namespace NuGetSwapper
                 //var nuGetProjectReference = nuGetProjectReferences.FirstOrDefault(item => item.Metadata.Any(metadata => metadata.Name.Equals("NuGetSwapperPackageName")));
                 var projectReferenceInfos = nuGetProjectReferences.Select(item => new ProjectReferenceInfo
                 {
-                    Name = item.EvaluatedInclude,
+                    Filename = item.EvaluatedInclude,
                     Version = item.GetMetadataValue("Version"),
                     PackageName = item.GetMetadataValue("NuGetSwapperPackageName")
-                }).OrderBy(item => item.Name); // Order the project references alphabetically;
+                }).OrderBy(item => item.Filename); // Order the project references alphabetically;
 
                 var projectInfo = new ProjectInfo { Name = Path.GetFileNameWithoutExtension(projectFile.FullPath), Filename = projectFile.FullPath };
                 projectReferencesByProject.Add(projectInfo, projectReferenceInfos);

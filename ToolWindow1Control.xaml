@@ -66,12 +66,12 @@
                         </TreeView.ItemContainerStyle>
                         <TreeView.ItemTemplate>
                             <HierarchicalDataTemplate ItemsSource="{Binding Packages}">
-                                <TextBlock Text="{Binding Project.Name}"/>
+                                <TextBlock Text="{Binding Project.Filename}"/>
                                 <HierarchicalDataTemplate.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">
                                             <imaging:CrispImage Moniker="{Binding Icon}" Width="16" Height="16" Margin="5,0,0,0"/>
-                                            <TextBlock Text="{Binding Package.Name}" />
+                                            <TextBlock Text="{Binding Package.Filename}" />
                                             <TextBlock Text="{Binding Package.Version}" />
                                         </StackPanel>
                                     </DataTemplate>
@@ -89,19 +89,20 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <TreeView x:Name="SwappedProjectsListTreeView" ItemsSource="{Binding SwappedProjectsList}">
+                        <TreeView.ItemContainerStyle>
+                            <Style TargetType="{x:Type TreeViewItem}">
+                                <Setter Property="IsExpanded" Value="True" />
+                            </Style>
+                        </TreeView.ItemContainerStyle>
                         <TreeView.ItemTemplate>
                             <HierarchicalDataTemplate ItemsSource="{Binding SwappedProjects}">
-                                <TextBlock Text="{Binding Project.Name}" />
+                                <TextBlock Text="{Binding Project.Filename}" />
                                 <HierarchicalDataTemplate.ItemTemplate>
                                     <DataTemplate>
-                                        <TextBlock>
-                                            <TextBlock.Text>
-                                                <MultiBinding StringFormat="{}{0} - {1}">
-                                                    <Binding Path="PackageName" />
-                                                    <Binding Path="Version" />
-                                                </MultiBinding>
-                                            </TextBlock.Text>
-                                        </TextBlock>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding SwappedProject.PackageName}" />
+                                            <TextBlock Text="{Binding SwappedProject.Version}" />
+                                        </StackPanel>
                                     </DataTemplate>
                                 </HierarchicalDataTemplate.ItemTemplate>
                             </HierarchicalDataTemplate>
