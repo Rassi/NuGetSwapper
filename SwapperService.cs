@@ -285,6 +285,10 @@ namespace NuGetSwapper
         public async Task<Dictionary<ProjectInfo, IEnumerable<PackageInfo>>> GetPackageReferencesBySolutionProject()
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+            // Ensure we have the newest project files loaded
+            ProjectCollection.GlobalProjectCollection.UnloadAllProjects();
+
             var packageReferencesByProject = new Dictionary<ProjectInfo, IEnumerable<PackageInfo>>();
             if (_dte.Solution?.IsOpen != true)
             {
