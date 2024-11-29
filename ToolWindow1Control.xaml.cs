@@ -69,9 +69,19 @@ namespace NuGetSwapper
         {
             if (PackagesListTreeView.SelectedItem is PackageViewModel selectedPackage)
             {
-                await _swapperService.SwapPackage(selectedPackage.SolutionProjectName, selectedPackage.Package.Name, selectedPackage.Package.Version);
-                
-                LoadPackages();
+                try
+                {
+                    LoadingOverlay.Visibility = Visibility.Visible;
+                    await Task.Yield(); // Ensure UI updates
+                    await Task.Delay(10);
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                    await _swapperService.SwapPackage(selectedPackage.SolutionProjectName, selectedPackage.Package.Name, selectedPackage.Package.Version);
+                    await LoadPackages();
+                }
+                finally
+                {
+                    LoadingOverlay.Visibility = Visibility.Collapsed;
+                }
             }
         }
 
@@ -79,13 +89,23 @@ namespace NuGetSwapper
         {
             if (SwappedProjectsListTreeView.SelectedItem is SwappedProjectViewModel selectedProject)
             {
-                await _swapperService.SwapProject(selectedProject.SolutionProjectName, selectedProject.SwappedProject.PackageName);
-
-                LoadPackages();
+                try
+                {
+                    LoadingOverlay.Visibility = Visibility.Visible;
+                    await Task.Yield(); // Ensure UI updates
+                    await Task.Delay(10);
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                    await _swapperService.SwapProject(selectedProject.SolutionProjectName, selectedProject.SwappedProject.PackageName);
+                    await LoadPackages();
+                }
+                finally
+                {
+                    LoadingOverlay.Visibility = Visibility.Collapsed;
+                }
             }
         }
 
-        private async void LoadPackages()
+        private async Task LoadPackages()
         {
             // Cancel any ongoing LoadPackages operation
             _loadPackagesCts?.Cancel();
