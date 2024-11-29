@@ -206,5 +206,21 @@ namespace NuGetSwapper
 
             return source;
         }
+
+        private void PackagesListTreeView_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (PackagesListTreeView.SelectedItem is PackageViewModel selectedPackage)
+            {
+                ButtonSwapToProject_Click(sender, new RoutedEventArgs());
+            }
+        }
+
+        private void SwappedProjectsListTreeView_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (SwappedProjectsListTreeView.SelectedItem is SwappedProjectViewModel selectedProject)
+            {
+                ButtonSwapToPackage_OnClick(sender, new RoutedEventArgs());
+            }
+        }
     }
 }
